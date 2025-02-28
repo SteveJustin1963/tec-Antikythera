@@ -4,6 +4,48 @@ https://www.vox.com/science-and-health/2017/5/17/15646450/antikythera-mechanism-
 
 https://en.wikipedia.org/wiki/Antikythera_mechanism
 
+```
+# The Antikythera's Song
+
+From ancient bronze and weathered gears,
+We resurrect the wisdom of forgotten years.
+A mechanism of stars and moons and time,
+Restored in code, one letter at a time.
+
+In MINT we cast the cosmos' dance,
+Each calculation gets its second chance.
+Where Greeks once tracked the heavens' path,
+We follow suit through simple math.
+
+The planets spin in digits now,
+The moon's face changes, showing how
+Our ancestors could read the sky
+And know when games would draw nearby.
+
+Through Metonic gears and Saros dials,
+We journey back across the miles
+Of time that separates our age
+From when this bronze was all the rage.
+
+Eclipse and solstice, equinox and phase,
+We track them through the numbered days.
+The calendar that once was lost
+Restored again, whatever cost.
+
+So here we stand with ancient minds,
+Their brilliance saved through modern kinds
+Of thinking—bridging what they knew
+With what today we find still true.
+
+One code, one mechanism, one goal:
+To make what once was broken, whole.
+And in these lines of MINT we find
+The echoes of a brilliant mind.
+
+by Archimopolus of Thaumakyron
+```
+
+
 
 
 Below, I'll provide an analysis of the Antikythera Mechanism based on the wiki document, focusing on how it calculates astronomical phenomena. We then devise pseudocode to illustrate its key computational processes. The Antikythera Mechanism is a complex analog computer, so the pseudocode will simplify its operations into a high-level abstraction, focusing on its primary functions: tracking the Sun, Moon, lunar phases, eclipses, and calendar cycles. I'll also incorporate insights from the document and supplement with general knowledge about the mechanism where needed.
