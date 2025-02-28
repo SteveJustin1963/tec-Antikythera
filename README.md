@@ -2828,3 +2828,90 @@ V
 - while still working within MINT's constraints of 16-bit integers and single-letter variables.
 - The user interface makes it more accessible,
 - allowing exploration of ancient Greek astronomical knowledge as it would have been encoded in the original Antikythera Mechanism.
+
+
+# compact version
+
+```
+// Compact Antikythera Mechanism in MINT
+// By Archimopolus of Thaumakyron (140 BCE)
+
+// Variables: a=year, b=day count, c=sun mean, d=sun true, e=moon, f-j=planets
+// k=phase, l-q=cycles, r-s=tables, t-z=temp variables
+
+// Init constants & variables
+:A 3652 a! 0 b! 380 c! 38 d! 85 e! 210 f! 320 g! 160 h! 240 i! 280 j! 
+47 k! 34 l! 0 m! 152 n! 523 o! 0 p! 8 q! ;
+
+// Anomaly tables
+:B [0 3 5 3 0 -3 -5 -3 0] r! [0 2 3 2 0 -2 -3 -2 0] s! ;
+
+// Constants lookup
+:C t! t 0 = (3652) /E (t 1 = (295)) /E (t 2 = (6940)) /E (t 3 = (27759)) 
+/E (t 4 = (6585)) /E (t 5 = (983)) /E (t 6 = (133)) /E (t 7 = (308)) 
+/E (t 8 = (62)) /E (t 9 = (47)) /E (t 10 = (91)) /E (t 11 = (96)) 
+/E (t 12 = (34)) ;
+
+// Lunar anomaly
+:D t! 3232 u! t 9 * u / 9 % v! t 0 < (9 v - 9 %) /E (v) v! r v? ;
+
+// Solar anomaly
+:E t! 3652 u! t 9 * u / 9 % v! t 0 < (9 v - 9 %) /E (v) v! s v? ;
+
+// Increment day
+:F v! 3 C t! b v + t % b! b 0 < (b t + b!)
+5 C w! c v w * + 3600 % c! c 0 < (c 3600 + c!)
+b E w! c 10 / w + 360 % d! d 0 < (d 360 + d!)
+6 C w! b D u! e v w * u + + 360 % e! e 0 < (e 360 + e!)
+7 C w! f v w * + 3600 % f! f 0 < (f 3600 + f!)
+8 C w! g v w * + 3600 % g! g 0 < (g 3600 + g!)
+9 C w! h v w * + 3600 % h! h 0 < (h 3600 + h!)
+10 C w! i v w * + 3600 % i! i 0 < (i 3600 + i!)
+11 C w! j v w * + 3600 % j! j 0 < (j 3600 + j!)
+e d - 360 + 360 % k!
+12 C w! l v w * + 2350 % l! l 0 < (l 2350 + l!) l 470 / m!
+v 0 > l 2340 >= & (0 l!) /E (v 0 < l 0 = & (2340 l!))
+12 C w! n v w * + 7600 % n! n 0 < (n 7600 + n!)
+12 C w! o v w * + 2230 % o! o 0 < (o 2230 + o!) o 557 / p!
+v 0 > o 2220 >= & (0 o! q 8 + 24 % q!) 
+/E (v 0 < o 0 = & (2220 o! q 8 - 24 + 24 % q!)) ;
+
+// Update days
+:G t! t 0 < (-1 v! t -1 * t!) /E (1 v!) t (v F) ;
+
+// Init date
+:H t! u! v! t -205 - 365 * u 1 - 30 * + v 1 - + w! 3 C w % b! w (1 F) ;
+
+// Current date
+:I b w! -205 w 365 / + t! w 365 % u! u 30 / 1 + v! u 30 % 1 + w! ;
+
+// Zodiac
+:J t! t 30 < (`Aries`) /E (t 60 < (`Taurus`) /E (t 90 < (`Gemini`) 
+/E (t 120 < (`Cancer`) /E (t 150 < (`Leo`) /E (t 180 < (`Virgo`) 
+/E (t 210 < (`Libra`) /E (t 240 < (`Scorpio`) /E (t 270 < (`Sagittarius`) 
+/E (t 300 < (`Capricorn`) /E (t 330 < (`Aquarius`) /E (`Pisces`))))))))))))
+;
+
+// Lunar phase
+:K t! t 45 < t 315 > | (`New`) /E (t 135 < (`First Q`) 
+/E (t 225 < (`Full`) /E (`Last Q`))) ;
+
+// Eclipse check
+:L t! t 1 = (`Lunar Eclipse at ` q . `h`) /E (t 5 = (`Solar Eclipse at ` q . `h`)) ;
+
+// Seasonal marker
+:M t! t 0 = (`Spring Equinox`) /E (t 90 = (`Summer Solstice`) 
+/E (t 180 = (`Autumn Equinox`) /E (t 270 = (`Winter Solstice`)))) ;
+
+// Main program
+:Z A B -205 4 28 H 
+/U (`Days to advance: ` /K z! z G
+I `Date: ` t . `/` v . `/` u . ` (` d J `)` /N
+`Sun: ` d . `° Moon: ` e . `° Phase: ` k K /N
+`Mercury: ` f 10 / . `° Venus: ` g 10 / . `° Mars: ` h 10 / . `°` /N
+`Jupiter: ` i 10 / . `° Saturn: ` j 10 / . `°` /N
+d M /N o 10 / L /N) ;
+
+// Run
+Z
+```
