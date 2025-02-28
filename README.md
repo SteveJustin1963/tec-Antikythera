@@ -2915,3 +2915,386 @@ d M /N o 10 / L /N) ;
 // Run
 Z
 ```
+
+
+# better
+
+```
+// Fully corrected Antikythera Mechanism in MINT
+// Variables: a=year, b=day count, c=sun mean, d=sun true, e=moon, f-j=planets
+// k=phase, l-q=cycles, r-s=tables, t-z=temp variables
+
+// Initialize constants
+:A
+3652 a! // tropical year (365.2422 scaled *10)
+;
+
+// Initialize variables with historically accurate positions for 28 April 205 BCE
+:B
+0 b!      // days since epoch
+380 c!    // sun at ~38° (Taurus) - scaled *10
+38 d!     // true sun position
+85 e!     // moon position (waxing quarter)
+210 f!    // mercury position - scaled *10
+320 g!    // venus position - scaled *10
+160 h!    // mars position - scaled *10
+240 i!    // jupiter position - scaled *10
+280 j!    // saturn position - scaled *10
+47 k!     // phase angle 
+34 l!     // metonic pointer (year 2 of cycle)
+0 m!      // metonic layer
+152 n!    // callippic pointer
+523 o!    // saros pointer
+0 p!      // saros layer
+8 q!      // exeligmos offset
+;
+
+// Enhanced lunar anomaly table - 12 points for better accuracy
+:C
+[0 2 4 5 6 4 2 0 -2 -4 -5 -6 -4 -2] r!
+;
+
+// Enhanced solar anomaly table - 12 points 
+:D
+[0 1 2 3 2 1 0 -1 -2 -3 -2 -1] s!
+;
+
+// Properly structured constants function using nested if-else
+:E
+t!
+t 0 = (3652) /E (      // tropical year (*10)
+  t 1 = (273) /E (     // sidereal month (*10)
+    t 2 = (295) /E (   // synodic month (*10)
+      t 3 = (6940) /E (  // metonic cycle
+        t 4 = (27759) /E (  // callippic cycle
+          t 5 = (6585) /E (  // saros cycle
+            t 6 = (19756) /E (  // exeligmos cycle
+              t 7 = (1461) /E (  // games cycle
+                t 8 = (983) /E (  // sun step
+                  t 9 = (133) /E (  // moon step
+                    t 10 = (308) /E (  // mercury step
+                      t 11 = (62) /E (  // venus step
+                        t 12 = (47) /E (  // mars step
+                          t 13 = (91) /E (  // jupiter step
+                            t 14 = (96) /E (  // saturn step
+                              t 15 = (34) /E (  // metonic step
+                                t 16 = (47) /E (  // callippic step
+                                  t 17 = (34) /E (  // saros step
+                                    t 18 = (236) /E (0)  // obliquity
+                                  )
+                                )
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)
+;
+
+// Modulo calculation function - calculates a mod n
+// Input: a n (with a on top of stack, n below)
+// Output: remainder
+:F
+w! v!                  // Store inputs (v=dividend, w=divisor)
+v w /                  // Integer division v/w
+" w *                  // Duplicate result, multiply by divisor
+v $                    // Get original dividend, swap to top
+-                      // Subtract to get remainder
+" 0 < (                // If remainder negative
+  " w +                // Add divisor to make positive
+) '                    // Drop duplicate if not needed
+;
+
+// Calculate lunar anomaly with improved accuracy
+:G
+t!                     // store input days
+3232 u!                // refined anomaly period
+r /S v!                // Get size of lunar anomaly table
+t u F                  // Calculate days mod period
+" u /                  // Calculate fraction of period (0-1)
+v *                    // Convert to table index range
+z!                     // Store index 
+z 0 < (0 z!) /E (      // If z < 0, set z = 0
+  z v > z v = | (      // If z > v OR z = v (meaning z >= v)
+    v 1 - z!           // Set z = v-1 (maximum valid index)
+  ) /E (z)             // Else keep z as is
+)
+z r ?                  // Lookup in table r using index z
+;
+
+// Calculate solar anomaly with improved accuracy
+:H
+t!                     // store input days
+3652 u!                // period = 365.2422 (*10)
+s /S v!                // Get size of solar anomaly table
+t u F                  // Calculate days mod period
+" u /                  // Calculate fraction of period (0-1)
+v *                    // Convert to table index range
+z!                     // Store index
+z 0 < (0 z!) /E (      // If z < 0, set z = 0
+  z v > z v = | (      // If z > v OR z = v (meaning z >= v)
+    v 1 - z!           // Set z = v-1 (maximum valid index)
+  ) /E (z)             // Else keep z as is
+)
+z s ?                  // Lookup in table s using index z
+;
+
+// Increment day by direction (1 or -1 on stack)
+:I
+v!                     // store direction (1 or -1)
+4 E t!                 // get callippic cycle (27759)
+b v + t!               // update days (b + direction)
+t t F b!               // days mod callippic cycle
+
+// Update Sun position
+8 E w!                 // sun step (983)
+c v w * + t!           // update mean position (c + direction*step)
+3600 t F c!            // sun mean pos mod 3600
+b H w!                 // get solar anomaly
+c 10 / w + t!          // mean position/10 + anomaly
+360 t F d!             // sun true pos mod 360
+
+// Update Moon position with improved anomaly
+9 E w!                 // moon step (133)
+b G x!                 // get lunar anomaly
+e v w * + x + t!       // update position with anomaly (e + direction*step + anomaly)
+360 t F e!             // moon position mod 360
+
+// Update planets with refined steps
+10 E w!                // mercury step (308)
+f v w * + t!           // update mercury
+3600 t F f!            // mercury mod 3600
+
+11 E w!                // venus step (62)
+g v w * + t!           // update venus
+3600 t F g!            // venus mod 3600
+
+12 E w!                // mars step (47)
+h v w * + t!           // update mars
+3600 t F h!            // mars mod 3600
+
+13 E w!                // jupiter step (91)
+i v w * + t!           // update jupiter
+3600 t F i!            // jupiter mod 3600
+
+14 E w!                // saturn step (96)
+j v w * + t!           // update saturn
+3600 t F j!            // saturn mod 3600
+
+// Calculate phase angle
+e d - 360 + t!         // moon - sun + 360
+360 t F k!             // phase angle mod 360
+
+// Update Metonic cycle
+15 E w!                // metonic step (34)
+l v w * + t!           // update metonic pointer
+2350 t F l!            // metonic pointer mod 2350
+l 470 / m!             // metonic layer (0-4)
+v 0 > (
+  l 2340 > l 2340 = | (0 l!) /E (l)
+) /E (
+  v 0 < (
+    l 0 = (2340 l!) /E (l)
+  ) /E (l)
+)
+
+// Update Callippic cycle
+16 E w!                // callippic step (47)
+n v w * + t!           // update callippic pointer
+7600 t F n!            // callippic pointer mod 7600
+
+// Update Saros cycle
+17 E w!                // saros step (34)
+o v w * + t!           // update saros pointer
+2230 t F o!            // saros pointer mod 2230
+o 557 / p!             // saros layer (0-3)
+
+// Handle Exeligmos crossing
+v 0 > (
+  o 2220 > o 2220 = | (  // if o >= 2220
+    0 o!
+    q 8 + t!
+    24 t F q!
+  ) /E (o)
+) /E (
+  v 0 < (
+    o 0 = (            // if o = 0
+      2220 o!
+      q 8 - 24 + t!
+      24 t F q!
+    ) /E (o)
+  ) /E (o)
+)
+
+// Games cycle
+7 E w!                 // games cycle (1461)
+b w F t!               // position in cycle
+t w / y!               // Olympics year (0-3)
+;
+
+// Update mechanism multiple days
+:J
+t!                     // days to advance
+t 0 < (
+  -1 v!                // direction
+  t -1 * t!            // abs value
+) /E (
+  1 v!                 // direction
+)
+t (                    // loop t times
+  v I                  // increment day with direction v
+)
+;
+
+// Initialize mechanism with start date with leap year handling
+:K
+t!                     // store year
+u!                     // store month
+v!                     // store day
+
+// Approximate days including leap years
+t -205 - x!            // years since epoch
+x 365 * y!             // basic days
+x 4 / z!               // estimate leap days (every 4 years)
+y z + w!               // total days estimate
+u 1 - 30 * w + w!      // add months
+v 1 - w + w!           // add days
+4 E x!                 // get callippic cycle
+w x F b!               // days mod callippic cycle
+w (1 I)                // advance days
+;
+
+// Get current date - simplified for MINT limitations
+:L
+b w!                   // total days
+-205 w 365 / + t!      // approx year
+w 365 F x!             // remaining days
+x 30 / 1 + u!          // month (1-12)
+x 30 F 1 + v!          // day (1-30)
+;
+
+// Print zodiac for given position
+:M
+t!                     // store position
+t 30 < (`Aries`) /E (
+  t 60 < (`Taurus`) /E (
+    t 90 < (`Gemini`) /E (
+      t 120 < (`Cancer`) /E (
+        t 150 < (`Leo`) /E (
+          t 180 < (`Virgo`) /E (
+            t 210 < (`Libra`) /E (
+              t 240 < (`Scorpio`) /E (
+                t 270 < (`Sagittarius`) /E (
+                  t 300 < (`Capricorn`) /E (
+                    t 330 < (`Aquarius`) /E (
+                      `Pisces`
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)
+;
+
+// Display lunar phase
+:N
+t!                     // store angle
+t 45 < (
+  `New Moon`
+) /E (
+  t 135 < (
+    `First Quarter`
+  ) /E (
+    t 225 < (
+      `Full Moon`
+    ) /E (
+      t 315 < (
+        `Last Quarter`
+      ) /E (
+        `New Moon`
+      )
+    )
+  )
+)
+;
+
+// Check for eclipses (simplified version)
+:O
+t!                     // store saros month
+t 1 = (
+  `Lunar Eclipse at month 1, hour ` q . /N
+) /E (t 5 = (
+  `Solar Eclipse at month 5, hour ` q . /N
+) /E (t 12 = (
+  `Lunar Eclipse at month 12, hour ` q . /N
+) /E (
+  //No eclipse
+)))
+;
+
+// Check seasonal markers
+:P
+t!                     // store position
+t 0 = (`Spring Equinox` /N) /E (
+  t 90 = (`Summer Solstice` /N) /E (
+    t 180 = (`Autumn Equinox` /N) /E (
+      t 270 = (`Winter Solstice` /N) /E (
+        // No marker
+      )
+    )
+  )
+)
+;
+
+// Main program
+:Q
+// Initialize
+A B C D
+// Set start date: 28 April 205 BCE
+-205 4 28 K
+
+// Main loop
+/U (
+  `Enter days to advance: ` /K z!
+  z J                  // Update mechanism
+  
+  L                    // Get current date
+  
+  `Date: ` t . `-` u . `-` v . /N
+  `Days since epoch: ` b . /N
+  `Sun (Mean): ` c 10 / . `°, Sun (True): ` d . `° (`
+  d M `)` /N
+  `Moon: ` e . `° (`
+  e M `)` /N
+  `Lunar phase: ` k N /N
+  
+  `Mercury: ` f 10 / . `°, Venus: ` g 10 / . `°, Mars: ` h 10 / . `°` /N
+  `Jupiter: ` i 10 / . `°, Saturn: ` j 10 / . `°` /N
+  `Metonic: ` l 10 / . ` (Layer ` m . `)` /N
+  `Callippic: ` n 100 / . `, Saros: ` o 10 / . ` (Layer ` p . `)` /N
+  `Games: ` y . /N
+  
+  d P                  // Check seasonal markers
+  o 10 / O             // Check eclipses
+)
+;
+
+// Run the program
+Q
+```
+
