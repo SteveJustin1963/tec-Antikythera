@@ -3298,3 +3298,413 @@ A B C D
 Q
 ```
 
+tried to run it crashe my tec-1 and also crashed asm80 with max ram. make matlab equiv version
+
+```
+% Antikythera Mechanism Simulation in MATLAB
+% Based on the MINT implementation
+% This simulation models the ancient Greek astronomical calculator
+% and its prediction of celestial positions and cycles
+
+% Main script file - save this as antikythera_mechanism.m
+
+function antikythera_mechanism()
+    % Initialize the mechanism
+    mechanism = initialize_mechanism();
+    
+    % Set start date: April 28, 205 BCE
+    mechanism = set_start_date(mechanism, -205, 4, 28);
+    
+    % Main interaction loop
+    while true
+        % Display current state
+        display_state(mechanism);
+        
+        % Get user input for days to advance
+        days_input = input('Enter days to advance (0 to exit): ');
+        if days_input == 0
+            break;
+        end
+        
+        % Update mechanism
+        mechanism = update_days(mechanism, days_input);
+    end
+end
+
+% Initialize constants and variables
+function mechanism = initialize_mechanism()
+    % Create structure to hold all mechanism data
+    mechanism = struct();
+    
+    % Initialize constants
+    mechanism.tropical_year = 3652;      % Tropical year (365.2422 scaled *10)
+    
+    % Initialize variables with historically accurate positions for April 28, 205 BCE
+    mechanism.days = 0;                  % Days since epoch
+    mechanism.sun_mean = 380;            % Sun at ~38° (Taurus) - scaled *10
+    mechanism.sun_true = 38;             % True sun position
+    mechanism.moon = 85;                 % Moon position (waxing quarter)
+    mechanism.mercury = 210;             % Mercury position - scaled *10
+    mechanism.venus = 320;               % Venus position - scaled *10
+    mechanism.mars = 160;                % Mars position - scaled *10
+    mechanism.jupiter = 240;             % Jupiter position - scaled *10
+    mechanism.saturn = 280;              % Saturn position - scaled *10
+    mechanism.phase_angle = 47;          % Phase angle
+    mechanism.metonic_pointer = 34;      % Metonic pointer (year 2 of cycle)
+    mechanism.metonic_layer = 0;         % Metonic layer
+    mechanism.callippic_pointer = 152;   % Callippic pointer
+    mechanism.saros_pointer = 523;       % Saros pointer
+    mechanism.saros_layer = 0;           % Saros layer
+    mechanism.exeligmos_offset = 8;      % Exeligmos offset
+    mechanism.olympic_year = 0;          % Olympic year (added for completeness)
+    
+    % Create lunar anomaly table - 12 points for better accuracy
+    mechanism.lunar_anomaly_table = [0, 2, 4, 5, 6, 4, 2, 0, -2, -4, -5, -6, -4, -2];
+    
+    % Create solar anomaly table - 12 points
+    mechanism.solar_anomaly_table = [0, 1, 2, 3, 2, 1, 0, -1, -2, -3, -2, -1];
+    
+    % Define constants
+    mechanism.constants = containers.Map();
+    mechanism.constants('tropical_year') = 3652;    % Tropical year (*10)
+    mechanism.constants('sidereal_month') = 273;    % Sidereal month (*10)
+    mechanism.constants('synodic_month') = 295;     % Synodic month (*10)
+    mechanism.constants('metonic_cycle') = 6940;    % Metonic cycle
+    mechanism.constants('callippic_cycle') = 27759; % Callippic cycle
+    mechanism.constants('saros_cycle') = 6585;      % Saros cycle
+    mechanism.constants('exeligmos_cycle') = 19756; % Exeligmos cycle
+    mechanism.constants('games_cycle') = 1461;      % Games cycle (Olympic)
+    mechanism.constants('sun_step') = 983;          % Sun step
+    mechanism.constants('moon_step') = 133;         % Moon step
+    mechanism.constants('mercury_step') = 308;      % Mercury step
+    mechanism.constants('venus_step') = 62;         % Venus step
+    mechanism.constants('mars_step') = 47;          % Mars step
+    mechanism.constants('jupiter_step') = 91;       % Jupiter step
+    mechanism.constants('saturn_step') = 96;        % Saturn step
+    mechanism.constants('metonic_step') = 34;       % Metonic step
+    mechanism.constants('callippic_step') = 47;     % Callippic step
+    mechanism.constants('saros_step') = 34;         % Saros step
+    mechanism.constants('obliquity') = 236;         % Obliquity
+end
+
+% Set start date and initialize positions based on a specific date
+function mechanism = set_start_date(mechanism, year, month, day)
+    % Calculate approximate days including leap years
+    years_since_epoch = year - (-205);         % Years since epoch
+    basic_days = years_since_epoch * 365;      % Basic days
+    leap_days = floor(years_since_epoch / 4);  % Estimate leap days (every 4 years)
+    total_days = basic_days + leap_days;       % Total days estimate
+    total_days = total_days + (month - 1) * 30; % Add months
+    total_days = total_days + (day - 1);       % Add days
+    
+    % Apply to mechanism
+    callippic_cycle = mechanism.constants('callippic_cycle');
+    mechanism.days = mod(total_days, callippic_cycle);
+    
+    % Advance the mechanism to the calculated date
+    for i = 1:total_days
+        mechanism = update_day(mechanism, 1);
+    end
+end
+
+% Custom modulo function for improved accuracy
+function result = custom_mod(a, n)
+    % Calculates a mod n with proper handling of negative numbers
+    result = mod(a, n);
+    if result < 0
+        result = result + n;
+    end
+end
+
+% Calculate lunar anomaly
+function anomaly = calculate_lunar_anomaly(mechanism, days)
+    period = 3232;   % Refined anomaly period
+    table_size = length(mechanism.lunar_anomaly_table);
+    
+    % Calculate days mod period
+    day_mod = custom_mod(days, period);
+    
+    % Calculate fraction of period (0-1) and convert to table index range
+    index = floor((day_mod / period) * table_size);
+    
+    % Ensure index is within bounds
+    if index < 0
+        index = 0;
+    elseif index >= table_size
+        index = table_size - 1;
+    end
+    
+    % Lookup in table
+    anomaly = mechanism.lunar_anomaly_table(index + 1); % +1 for MATLAB indexing
+end
+
+% Calculate solar anomaly
+function anomaly = calculate_solar_anomaly(mechanism, days)
+    period = 3652;   % Period = 365.2422 (*10)
+    table_size = length(mechanism.solar_anomaly_table);
+    
+    % Calculate days mod period
+    day_mod = custom_mod(days, period);
+    
+    % Calculate fraction of period (0-1) and convert to table index range
+    index = floor((day_mod / period) * table_size);
+    
+    % Ensure index is within bounds
+    if index < 0
+        index = 0;
+    elseif index >= table_size
+        index = table_size - 1;
+    end
+    
+    % Lookup in table
+    anomaly = mechanism.solar_anomaly_table(index + 1); % +1 for MATLAB indexing
+end
+
+% Update mechanism by one day in the given direction (1 or -1)
+function mechanism = update_day(mechanism, direction)
+    % Get callippic cycle
+    callippic_cycle = mechanism.constants('callippic_cycle');
+    
+    % Update days
+    mechanism.days = custom_mod(mechanism.days + direction, callippic_cycle);
+    
+    % Update Sun position
+    sun_step = mechanism.constants('sun_step');
+    mechanism.sun_mean = custom_mod(mechanism.sun_mean + direction * sun_step, 3600);
+    solar_anomaly = calculate_solar_anomaly(mechanism, mechanism.days);
+    mechanism.sun_true = custom_mod(floor(mechanism.sun_mean / 10) + solar_anomaly, 360);
+    
+    % Update Moon position with improved anomaly
+    moon_step = mechanism.constants('moon_step');
+    lunar_anomaly = calculate_lunar_anomaly(mechanism, mechanism.days);
+    mechanism.moon = custom_mod(mechanism.moon + direction * moon_step + lunar_anomaly, 360);
+    
+    % Update planets with refined steps
+    mercury_step = mechanism.constants('mercury_step');
+    mechanism.mercury = custom_mod(mechanism.mercury + direction * mercury_step, 3600);
+    
+    venus_step = mechanism.constants('venus_step');
+    mechanism.venus = custom_mod(mechanism.venus + direction * venus_step, 3600);
+    
+    mars_step = mechanism.constants('mars_step');
+    mechanism.mars = custom_mod(mechanism.mars + direction * mars_step, 3600);
+    
+    jupiter_step = mechanism.constants('jupiter_step');
+    mechanism.jupiter = custom_mod(mechanism.jupiter + direction * jupiter_step, 3600);
+    
+    saturn_step = mechanism.constants('saturn_step');
+    mechanism.saturn = custom_mod(mechanism.saturn + direction * saturn_step, 3600);
+    
+    % Calculate phase angle
+    mechanism.phase_angle = custom_mod(mechanism.moon - mechanism.sun_true + 360, 360);
+    
+    % Update Metonic cycle
+    metonic_step = mechanism.constants('metonic_step');
+    mechanism.metonic_pointer = custom_mod(mechanism.metonic_pointer + direction * metonic_step, 2350);
+    mechanism.metonic_layer = floor(mechanism.metonic_pointer / 470);
+    
+    if direction > 0
+        if mechanism.metonic_pointer >= 2340
+            mechanism.metonic_pointer = 0;
+        end
+    elseif direction < 0
+        if mechanism.metonic_pointer == 0
+            mechanism.metonic_pointer = 2340;
+        end
+    end
+    
+    % Update Callippic cycle
+    callippic_step = mechanism.constants('callippic_step');
+    mechanism.callippic_pointer = custom_mod(mechanism.callippic_pointer + direction * callippic_step, 7600);
+    
+    % Update Saros cycle
+    saros_step = mechanism.constants('saros_step');
+    mechanism.saros_pointer = custom_mod(mechanism.saros_pointer + direction * saros_step, 2230);
+    mechanism.saros_layer = floor(mechanism.saros_pointer / 557);
+    
+    % Handle Exeligmos crossing
+    if direction > 0
+        if mechanism.saros_pointer >= 2220
+            mechanism.saros_pointer = 0;
+            mechanism.exeligmos_offset = custom_mod(mechanism.exeligmos_offset + 8, 24);
+        end
+    elseif direction < 0
+        if mechanism.saros_pointer == 0
+            mechanism.saros_pointer = 2220;
+            mechanism.exeligmos_offset = custom_mod(mechanism.exeligmos_offset - 8 + 24, 24);
+        end
+    end
+    
+    % Games (Olympic) cycle
+    games_cycle = mechanism.constants('games_cycle');
+    games_position = custom_mod(mechanism.days, games_cycle);
+    mechanism.olympic_year = floor(games_position / games_cycle);
+end
+
+% Update mechanism by multiple days
+function mechanism = update_days(mechanism, days)
+    % Determine direction
+    if days < 0
+        direction = -1;
+        days = abs(days);
+    else
+        direction = 1;
+    end
+    
+    % Update day by day
+    for i = 1:days
+        mechanism = update_day(mechanism, direction);
+    end
+end
+
+% Get current date - simplified version
+function [year, month, day] = get_current_date(mechanism)
+    % Calculate approximate date from days
+    total_days = mechanism.days;
+    year = -205 + floor(total_days / 365);  % Approximate year
+    remaining_days = custom_mod(total_days, 365);
+    month = floor(remaining_days / 30) + 1;  % Month (1-12)
+    day = custom_mod(remaining_days, 30) + 1;  % Day (1-30)
+end
+
+% Get zodiac sign for a given position
+function sign = get_zodiac(position)
+    if position < 30
+        sign = 'Aries';
+    elseif position < 60
+        sign = 'Taurus';
+    elseif position < 90
+        sign = 'Gemini';
+    elseif position < 120
+        sign = 'Cancer';
+    elseif position < 150
+        sign = 'Leo';
+    elseif position < 180
+        sign = 'Virgo';
+    elseif position < 210
+        sign = 'Libra';
+    elseif position < 240
+        sign = 'Scorpio';
+    elseif position < 270
+        sign = 'Sagittarius';
+    elseif position < 300
+        sign = 'Capricorn';
+    elseif position < 330
+        sign = 'Aquarius';
+    else
+        sign = 'Pisces';
+    end
+end
+
+% Get lunar phase description
+function phase = get_lunar_phase(angle)
+    if angle < 45
+        phase = 'New Moon';
+    elseif angle < 135
+        phase = 'First Quarter';
+    elseif angle < 225
+        phase = 'Full Moon';
+    elseif angle < 315
+        phase = 'Last Quarter';
+    else
+        phase = 'New Moon';
+    end
+end
+
+% Check for eclipses (simplified version)
+function message = check_eclipse(saros_month, hour)
+    if saros_month == 1
+        message = sprintf('Lunar Eclipse at month 1, hour %d', hour);
+    elseif saros_month == 5
+        message = sprintf('Solar Eclipse at month 5, hour %d', hour);
+    elseif saros_month == 12
+        message = sprintf('Lunar Eclipse at month 12, hour %d', hour);
+    else
+        message = '';
+    end
+end
+
+% Check seasonal markers
+function message = check_seasonal_marker(position)
+    if position == 0
+        message = 'Spring Equinox';
+    elseif position == 90
+        message = 'Summer Solstice';
+    elseif position == 180
+        message = 'Autumn Equinox';
+    elseif position == 270
+        message = 'Winter Solstice';
+    else
+        message = '';
+    end
+end
+
+% Display current state of the mechanism
+function display_state(mechanism)
+    % Get current date
+    [year, month, day] = get_current_date(mechanism);
+    
+    % Display date and positions
+    fprintf('\n===== Antikythera Mechanism Status =====\n');
+    fprintf('Date: %d-%d-%d\n', year, month, day);
+    fprintf('Days since epoch: %d\n', mechanism.days);
+    
+    % Sun and Moon
+    fprintf('Sun (Mean): %.1f°, Sun (True): %d° (%s)\n', ...
+        mechanism.sun_mean/10, mechanism.sun_true, get_zodiac(mechanism.sun_true));
+    fprintf('Moon: %d° (%s)\n', ...
+        mechanism.moon, get_zodiac(mechanism.moon));
+    fprintf('Lunar phase: %s\n', get_lunar_phase(mechanism.phase_angle));
+    
+    % Planets
+    fprintf('Mercury: %.1f°, Venus: %.1f°, Mars: %.1f°\n', ...
+        mechanism.mercury/10, mechanism.venus/10, mechanism.mars/10);
+    fprintf('Jupiter: %.1f°, Saturn: %.1f°\n', ...
+        mechanism.jupiter/10, mechanism.saturn/10);
+    
+    % Cycles
+    fprintf('Metonic: %.1f (Layer %d)\n', ...
+        mechanism.metonic_pointer/10, mechanism.metonic_layer);
+    fprintf('Callippic: %.2f, Saros: %.1f (Layer %d)\n', ...
+        mechanism.callippic_pointer/100, mechanism.saros_pointer/10, mechanism.saros_layer);
+    
+    % Games (Olympics)
+    fprintf('Olympic year: %d\n', mechanism.olympic_year);
+    
+    % Seasonal marker
+    seasonal = check_seasonal_marker(mechanism.sun_true);
+    if ~isempty(seasonal)
+        fprintf('%s\n', seasonal);
+    end
+    
+    % Eclipse information
+    saros_month = floor(mechanism.saros_pointer/10);
+    eclipse = check_eclipse(saros_month, mechanism.exeligmos_offset);
+    if ~isempty(eclipse)
+        fprintf('%s\n', eclipse);
+    end
+    
+    fprintf('========================================\n');
+end
+```
+
+result -works!!
+```
+
+===== Antikythera Mechanism Status =====
+Date: -205-6-7
+Days since epoch: 156
+Sun (Mean): 271.7°, Sun (True): 271° (Capricorn)
+Moon: 14° (Aries)
+Lunar phase: First Quarter
+Mercury: 142.2°, Venus: 273.8°, Mars: 199.3°
+Jupiter: 18.9°, Saturn: 42.4°
+Metonic: 136.2 (Layer 2)
+Callippic: 19.85, Saros: 185.2 (Layer 3)
+Olympic year: 0
+========================================
+Enter days to advance (0 to exit): 
+```
+
+
+
