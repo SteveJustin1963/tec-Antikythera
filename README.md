@@ -3298,7 +3298,7 @@ A B C D
 Q
 ```
 
-tried to run it crashe my tec-1 and also crashed asm80 with max ram. make matlab equiv version
+tried to run it crashes my tec-1 and also crashed asm80 with max ram. make matlab equiv version
 
 ```
 % Antikythera Mechanism Simulation in MATLAB
